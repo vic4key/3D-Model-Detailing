@@ -39,23 +39,18 @@ def load_image_and_normalize(image_path):
         print(f"Error loading or normalizing the image: {e}")
         return None
 
-def generate_depthmap_from_image():
-    depth_map = load_image_and_normalize(IMAGE_PATH)
-    return depth_map
-
-def generate_depthmap():
+def generate_depthmap(norm_image):
     minimum = 0
     maximum = 0
-    depth_map = generate_depthmap_from_image()
     for x in range(IMAGE_SIZE[0]):
         for y in range(IMAGE_SIZE[1]):
-            new_value = depth_map[x][y]
+            new_value = norm_image[x][y]
             if new_value < minimum:
                 minimum = new_value
             if new_value > maximum:
                 maximum = new_value
     print(f"Generated Depthmap (minimum = {minimum:.3f}, maximum = {maximum:.3f})")
-    return normalize(depth_map, minimum, maximum, EXPO_HEIGHT)
+    return normalize(norm_image, minimum, maximum, EXPO_HEIGHT)
 
 def generate_vertices(depth_map):
     vertices = []
@@ -107,16 +102,17 @@ def export_depth_map(norm_map, filename):
 def export_3d_model(vertices, triangles, filename): # wavefront .obj file format
     file = open(filename, "w")
     for vertex in vertices:
-      file.write("v " + str(vertex[0]) + " " + str(vertex[1]) + " " + str(vertex[2]) + "\n")
+      file.write(f"v {vertex[0]:.5f} {vertex[1]:.5f} {vertex[2]:.5f}\n")
     for triangle in triangles:
-      file.write("f " + str(triangle[2]+1) + " " + str(triangle[1]+1) + " " + str(triangle[0]+1) + "\n")
+      file.write(f"f {triangle[2]+1:.5f} {triangle[1]+1:.5f} {triangle[0]+1:.5f}\n")
     file.close()
     print(f"Saved '{filename}'")
     return
 
 def main():
     # generate 3d model
-    depth_map = generate_depthmap()
+    norm_img  = load_image_and_normalize(IMAGE_PATH)
+    depth_map = generate_depthmap(norm_img)
     vertices  = generate_vertices(depth_map)
     edges, triangles = generate_edges_and_triangles()
 
@@ -124,12 +120,12 @@ def main():
     parts = IMAGE_PATH.split("\\")
     folder_name = parts[1]
     file_name   = parts[3].split(".")[0]
-    output_dir  = RF"result\{folder_name}\{file_name}"
+    output_dir  = RF"result\{folder_name}"
     os.makedirs(output_dir, exist_ok=True)
 
     # export 3d model to files
-    export_depth_map(depth_map, RF"{output_dir}\depth_map.png")
-    export_3d_model(vertices, triangles, RF"{output_dir}\model.obj")
+    export_depth_map(depth_map, RF"{output_dir}\{file_name}_depth-map.png")
+    export_3d_model(vertices, triangles, RF"{output_dir}\{file_name}.obj")
 
 if __name__ == "__main__":
     main()
