@@ -56,7 +56,7 @@ def load_image_and_normalize(image_path):
         return None
 
 def generate_depthmap_from_image():
-    depthmap  = load_image_and_normalize(IMAGE_PATH)
+    depthmap = load_image_and_normalize(IMAGE_PATH)
     return depthmap
 
 def generate_depthmap():
@@ -73,26 +73,25 @@ def generate_depthmap():
     print(f"Generated Depthmap (minimum = {minimum:.3f}, maximum = {maximum:.3f})")
     return normalize(depthmap, minimum, maximum, EXPO_HEIGHT)
 
-def out_of_bounds(coord):
-    if coord[0] < 0 or coord[0] >= IMAGE_SIZE[0]:
+def out_of_bounds(point):
+    if 0 <= point[0] < IMAGE_SIZE[0] and 0 <= point[1] < IMAGE_SIZE[1]:
         return True
-    if coord[1] < 0 or coord[1] >= IMAGE_SIZE[1]:
+    if point[1] < 0 or point[1] >= IMAGE_SIZE[1]:
         return True
     return False
 
 def generate_slopemap(depthmap):
+    valid = lambda point: 0 <= point[0] < IMAGE_SIZE[0] and 0 <= point[1] < IMAGE_SIZE[1]
     slopemap = np.zeros(IMAGE_SIZE)
     minimum = 0
     maximum = 0
     for x in range(IMAGE_SIZE[0]):
         for y in range(IMAGE_SIZE[1]):
-            
             slope = 0
             for vector in LUT_VECTORS:
-                coord = (x+vector[0], y+vector[1])
-                if out_of_bounds(coord):
-                    continue
-                slope += abs(depthmap[x][y]-depthmap[coord[0]][coord[1]])
+                point = (x+vector[0], y+vector[1])
+                if not valid(point): continue
+                slope += abs(depthmap[x][y]-depthmap[point[0]][point[1]])
             slope = slope/8
             slopemap[x][y] = slope
             if slope < minimum:
