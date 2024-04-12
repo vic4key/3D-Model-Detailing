@@ -1,3 +1,2 @@
-noise
 numpy
 Pillow
