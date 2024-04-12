@@ -1,11 +1,7 @@
 from PIL import Image, ImageDraw
-import math
-import noise
-import random
 import numpy as np
 
 MAP_SIZE = (512, 512)
-SCALE = 256
 EXPO_HEIGHT = 2
 COLORS = {
     "grass" : (34,139,34),
@@ -21,18 +17,6 @@ lut_vectors = (
     (-1, 0),         (1, 0),
     (-1, -1), (0, -1), (1, -1)
 )
-
-def update_point(coords, seed):
-    return noise.snoise2(coords[0]/SCALE,
-                          coords[1]/SCALE,
-                          octaves=6,
-                          persistence=0.5,
-                          lacunarity=2,
-                          repeatx=MAP_SIZE[0],
-                          repeaty=MAP_SIZE[1],
-                          base=330
-                         )
-
 
 def normalize(input_map, minimum, maximum, expo):
     scale = maximum - minimum
@@ -73,24 +57,17 @@ def generate_heightmap_from_image():
     return heightmap
 
 def generate_heightmap():
-    seed = int(random.random()*1000)
     minimum = 0
     maximum = 0
-
     heightmap = generate_heightmap_from_image()
-
-    # heightmap = np.zeros(MAP_SIZE)
     for x in range(MAP_SIZE[0]):
         for y in range(MAP_SIZE[1]):
-            # new_value = update_point((x, y), seed)
-            # heightmap[x][y] = new_value
             new_value = heightmap[x][y]
             if new_value < minimum:
                 minimum = new_value
             if new_value > maximum:
                 maximum = new_value
-    print(f"Height map generated with seed = {seed}, minimum = {minimum:.3f}, maximum = {maximum:.3f}")
-
+    print(f"Height map generated with minimum = {minimum:.3f}, maximum = {maximum:.3f}")
     return normalize(heightmap, minimum, maximum, EXPO_HEIGHT)
 
 def out_of_bounds(coord):
@@ -208,7 +185,6 @@ def export_obj(vertices, tris, filename):
     file.close()
     print(filename, "saved")
     return
-
 
 def main():
     heightmap = generate_heightmap()
