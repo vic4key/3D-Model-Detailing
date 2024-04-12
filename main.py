@@ -73,9 +73,9 @@ def generate_vertices(depth_map):
     print("Generated Vertices")
     return vertices
     
-def generate_edges_and_surfaces():
+def generate_edges_and_triangles():
     edges = []
-    surfaces = []
+    triangles = []
     for x in range(IMAGE_SIZE[0]-1):
         for y in range(IMAGE_SIZE[1]-1):
             base = x*IMAGE_SIZE[0]+y
@@ -88,10 +88,10 @@ def generate_edges_and_surfaces():
             edges.append((c, a))
             edges.append((c, d))
             edges.append((d, a))
-            surfaces.append((a, b, c))
-            surfaces.append((a, c, d))
-    print("Generated Edges & Surfaces")
-    return edges, surfaces
+            triangles.append((a, b, c))
+            triangles.append((a, c, d))
+    print("Generated Edges & Triangles")
+    return edges, triangles
 
 def export_depth_map(norm_map, filename):
     image = Image.new('RGB', IMAGE_SIZE, 0)
@@ -118,7 +118,7 @@ def main():
     # generate 3d model
     depth_map = generate_depthmap()
     vertices  = generate_vertices(depth_map)
-    edges, triangles = generate_edges_and_surfaces()
+    edges, triangles = generate_edges_and_triangles()
 
     # make output directory
     parts = IMAGE_PATH.split("\\")
