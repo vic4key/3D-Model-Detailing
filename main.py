@@ -1,8 +1,12 @@
-from PIL import Image, ImageDraw
+import os
 import numpy as np
+from PIL import Image, ImageDraw
 
-MAP_SIZE = (512, 512)
+IMAGE_PATH = R"data\tank-wheel\grayscale\frontal.jpg"
+IMAGE_SIZE = (512, 512)
+
 EXPO_HEIGHT = 2
+
 COLORS = {
     "grass" : (34,139,34),
     "forest" : (0, 100, 0),
@@ -12,7 +16,7 @@ COLORS = {
     "snow" : (255, 250, 250)
 }
 
-lut_vectors = (
+LUT_VECTORS = (
     (-1, 1), (0, 1), (1, 1),
     (-1, 0),         (1, 0),
     (-1, -1), (0, -1), (1, -1)
@@ -20,9 +24,9 @@ lut_vectors = (
 
 def normalize(input_map, minimum, maximum, expo):
     scale = maximum - minimum
-    output_map = np.zeros(MAP_SIZE)
-    for x in range(MAP_SIZE[0]):
-        for y in range(MAP_SIZE[1]):
+    output_map = np.zeros(IMAGE_SIZE)
+    for x in range(IMAGE_SIZE[0]):
+        for y in range(IMAGE_SIZE[1]):
             output_map[x][y] = ((input_map[x][y] - minimum)/scale)**expo
     return output_map
 
@@ -51,53 +55,51 @@ def load_image_and_normalize(image_path):
         print(f"Error loading or normalizing the image: {e}")
         return None
 
-def generate_heightmap_from_image():
-    image_path = R"data\tank-wheel\grayscale\lateral.jpg"
-    heightmap  = load_image_and_normalize(image_path)
-    return heightmap
+def generate_depthmap_from_image():
+    depthmap  = load_image_and_normalize(IMAGE_PATH)
+    return depthmap
 
-def generate_heightmap():
+def generate_depthmap():
     minimum = 0
     maximum = 0
-    heightmap = generate_heightmap_from_image()
-    for x in range(MAP_SIZE[0]):
-        for y in range(MAP_SIZE[1]):
-            new_value = heightmap[x][y]
+    depthmap = generate_depthmap_from_image()
+    for x in range(IMAGE_SIZE[0]):
+        for y in range(IMAGE_SIZE[1]):
+            new_value = depthmap[x][y]
             if new_value < minimum:
                 minimum = new_value
             if new_value > maximum:
                 maximum = new_value
-    print(f"Height map generated with minimum = {minimum:.3f}, maximum = {maximum:.3f}")
-    return normalize(heightmap, minimum, maximum, EXPO_HEIGHT)
+    print(f"Generated Depthmap (minimum = {minimum:.3f}, maximum = {maximum:.3f})")
+    return normalize(depthmap, minimum, maximum, EXPO_HEIGHT)
 
 def out_of_bounds(coord):
-    if coord[0] < 0 or coord[0] >= MAP_SIZE[0]:
+    if coord[0] < 0 or coord[0] >= IMAGE_SIZE[0]:
         return True
-    if coord[1] < 0 or coord[1] >= MAP_SIZE[1]:
+    if coord[1] < 0 or coord[1] >= IMAGE_SIZE[1]:
         return True
     return False
 
-def generate_slopemap(heightmap):
-    slopemap = np.zeros(MAP_SIZE)
+def generate_slopemap(depthmap):
+    slopemap = np.zeros(IMAGE_SIZE)
     minimum = 0
     maximum = 0
-
-    for x in range(MAP_SIZE[0]):
-        for y in range(MAP_SIZE[1]):
+    for x in range(IMAGE_SIZE[0]):
+        for y in range(IMAGE_SIZE[1]):
             
             slope = 0
-            for vector in lut_vectors:
+            for vector in LUT_VECTORS:
                 coord = (x+vector[0], y+vector[1])
                 if out_of_bounds(coord):
                     continue
-                slope += abs(heightmap[x][y]-heightmap[coord[0]][coord[1]])
+                slope += abs(depthmap[x][y]-depthmap[coord[0]][coord[1]])
             slope = slope/8
             slopemap[x][y] = slope
             if slope < minimum:
                 minimum = slope
             if slope > maximum:
                 maximum = slope
-    print("Slopemap generated")
+    print("Generated Slopemap")
     return normalize(slopemap, minimum, maximum, 1)
 
 def get_color(height, slope):
@@ -116,34 +118,32 @@ def get_color(height, slope):
     elif height > 0.9:
         return COLORS["snow"]
 
-def generate_vertices(heightmap):
+def generate_vertices(depthmap):
     vertices = []
     base = (-1, -0.75, -1)
     size = 2
     max_height = 0.5
-    step_x = size/(MAP_SIZE[0]-1)
-    step_y = size/(MAP_SIZE[1]-1)
-
-    for x in range(MAP_SIZE[0]):
-        for y in range(MAP_SIZE[1]):
+    step_x = size/(IMAGE_SIZE[0]-1)
+    step_y = size/(IMAGE_SIZE[1]-1)
+    for x in range(IMAGE_SIZE[0]):
+        for y in range(IMAGE_SIZE[1]):
             x_coord = base[0] + step_x*x 
-            y_coord = base[1] + max_height*heightmap[x][y]
+            y_coord = base[1] + max_height*depthmap[x][y]
             z_coord = base[2] + step_y*y
             vertices.append((x_coord, y_coord, z_coord))
-    print("Vertices generated")
+    print("Generated Vertices")
     return vertices
     
-def generate_tris():
+def generate_edges_and_surfaces():
     edges = []
     surfaces = []
-
-    for x in range(MAP_SIZE[0]-1):
-        for y in range(MAP_SIZE[1]-1):
-            base = x*MAP_SIZE[0]+y
+    for x in range(IMAGE_SIZE[0]-1):
+        for y in range(IMAGE_SIZE[1]-1):
+            base = x*IMAGE_SIZE[0]+y
             a = base
             b = base+1
-            c = base+MAP_SIZE[0]+1
-            d = base+MAP_SIZE[0]
+            c = base+IMAGE_SIZE[0]+1
+            d = base+IMAGE_SIZE[0]
             edges.append((a, b))
             edges.append((b, c))
             edges.append((c, a))
@@ -151,50 +151,59 @@ def generate_tris():
             edges.append((d, a))
             surfaces.append((a, b, c))
             surfaces.append((a, c, d))
-    print("Edges, surfaces generated")
+    print("Generated Edges & Surfaces")
     return edges, surfaces
 
 def export_norm_map(norm_map, filename):
-    image = Image.new('RGB', MAP_SIZE, 0)
+    image = Image.new('RGB', IMAGE_SIZE, 0)
     draw = ImageDraw.ImageDraw(image)
-
-    for x in range(MAP_SIZE[0]):
-        for y in range(MAP_SIZE[1]):
+    for x in range(IMAGE_SIZE[0]):
+        for y in range(IMAGE_SIZE[1]):
             color = int(norm_map[x][y]*255)
             draw.point((x, y), (color, color, color))
     image.save(filename) 
-    print(filename, "saved")
+    print(f"Saved '{filename}'")
     return
 
-def export_texture(heightmap, slopemap, filename):
-    image = Image.new('RGB', MAP_SIZE, 0)
+def export_texture(depthmap, slopemap, filename):
+    image = Image.new('RGB', IMAGE_SIZE, 0)
     draw = ImageDraw.ImageDraw(image)
-    for x in range(MAP_SIZE[0]):
-        for y in range(MAP_SIZE[1]):
-            draw.point((x, y), get_color(heightmap[x][y], slopemap[x][y]))
+    for x in range(IMAGE_SIZE[0]):
+        for y in range(IMAGE_SIZE[1]):
+            draw.point((x, y), get_color(depthmap[x][y], slopemap[x][y]))
     image.save(filename)
-    print(filename, "saved")
+    print(f"Saved '{filename}'")
     return
 
-def export_obj(vertices, tris, filename):
+def export_3d_model(vertices, tris, filename):
     file = open(filename, "w")
     for vertex in vertices:
       file.write("v " + str(vertex[0]) + " " + str(vertex[1]) + " " + str(vertex[2]) + "\n")
     for tri in tris:
       file.write("f " + str(tri[2]+1) + " " + str(tri[1]+1) + " " + str(tri[0]+1) + "\n")
     file.close()
-    print(filename, "saved")
+    print(f"Saved '{filename}'")
     return
 
 def main():
-    heightmap = generate_heightmap()
-    slopemap = generate_slopemap(heightmap)
-    vertices = generate_vertices(heightmap)
-    edges, surfaces = generate_tris()
-    export_obj(vertices, surfaces, R"result\model.obj")
-    export_norm_map(heightmap, R"result\heightmap.png")
-    export_norm_map(slopemap, R"result\slopemap.png")
-    export_texture(heightmap, slopemap, R"result\texture.png")
+    # generate 3d model
+    depthmap = generate_depthmap()
+    slopemap = generate_slopemap(depthmap)
+    vertices = generate_vertices(depthmap)
+    edges, surfaces = generate_edges_and_surfaces()
+
+    # make output directory
+    parts = IMAGE_PATH.split("\\")
+    folder_name = parts[1]
+    file_name   = parts[3].split(".")[0]
+    output_dir  = RF"result\{folder_name}\{file_name}"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # export 3d model to files
+    export_3d_model(vertices, surfaces, RF"{output_dir}\model.obj")
+    export_norm_map(depthmap, RF"{output_dir}\depthmap.png")
+    export_norm_map(slopemap, RF"{output_dir}\slopemap.png")
+    export_texture(depthmap, slopemap, RF"{output_dir}\texture.png")
 
 if __name__ == "__main__":
     main()
