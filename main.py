@@ -2,9 +2,20 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw
 
-IMAGE_PATH  = R"data\tank-wheel\grayscale\lateral.jpg"
+IMAGE_PATH  = R"data\tank-wheel\grayscale\frontal.jpg"
 IMAGE_SIZE  = (512, 512)
 EXPO_HEIGHT = 2.0
+
+'''
+In 3D model coordinates are (x, y, z):
+    - x: horizontal axis
+    - y: vertical axis
+    - z: depth axis
+'''
+MODEL_SIZE = 2.0 # (horizontal axis, vertical axis)
+MODEL_STEP_HOR = MODEL_SIZE / (IMAGE_SIZE[0] - 1)
+MODEL_STEP_VER = MODEL_SIZE / (IMAGE_SIZE[1] - 1)
+MODEL_STEP_DEP = 0.5
 
 def load_image(image_path: str) -> np.array:
     result = None
@@ -44,19 +55,15 @@ def generate_depthmap(image: np.array) -> np.array:
 
 def generate_vertices(depth_map: np.array) -> list:
     '''
-    Generate vertices for a 2D image
+    Generate vertices (3D model coordinate) from a 2D image
     '''
     vertices = []
-    base = (-1, -0.75, -1)
-    size = 2
-    max_height = 0.5
-    step_x = size / (IMAGE_SIZE[0] - 1)
-    step_y = size / (IMAGE_SIZE[1] - 1)
+    origin = (0.0, 0.0, 0.0)
     for x in range(IMAGE_SIZE[0]):
         for y in range(IMAGE_SIZE[1]):
-            x_coord = base[0] + step_x*x 
-            y_coord = base[1] + max_height * depth_map[x][y]
-            z_coord = base[2] + step_y*y
+            x_coord = origin[0] + MODEL_STEP_HOR * x 
+            y_coord = origin[1] + MODEL_STEP_DEP * depth_map[x][y]
+            z_coord = origin[2] + MODEL_STEP_VER * y
             vertices.append((x_coord, y_coord, z_coord))
     print("Generated Vertices")
     return vertices
