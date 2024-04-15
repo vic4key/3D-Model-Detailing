@@ -7,15 +7,15 @@ IMAGE_SIZE  = (512, 512)
 EXPO_HEIGHT = 2.0
 
 '''
-In 3D model coordinates are (x, y, z):
-    - x: horizontal axis
-    - y: vertical axis
-    - z: depth axis
+In 3D model coordinate (x-axis, y-axis, z-axis):
+    x-axis: horizontal axis
+    y-axis: vertical axis
+    z-axis: depth axis
 '''
-MODEL_SIZE = 2.0 # (horizontal axis, vertical axis)
-MODEL_STEP_HOR = MODEL_SIZE / (IMAGE_SIZE[0] - 1)
-MODEL_STEP_VER = MODEL_SIZE / (IMAGE_SIZE[1] - 1)
-MODEL_STEP_DEP = 0.5
+MODEL_SIZE            = 2.0
+MODEL_STEP_HORIZONTAL = MODEL_SIZE / (IMAGE_SIZE[0] - 1)
+MODEL_STEP_VERTICAL   = MODEL_SIZE / (IMAGE_SIZE[1] - 1)
+MODEL_STEP_DEPTH      = 0.5
 
 def load_image(image_path: str) -> np.array:
     result = None
@@ -61,9 +61,9 @@ def generate_vertices(depth_map: np.array) -> list:
     origin = (0.0, 0.0, 0.0)
     for x in range(IMAGE_SIZE[0]):
         for y in range(IMAGE_SIZE[1]):
-            x_coord = origin[0] + MODEL_STEP_HOR * x 
-            y_coord = origin[1] + MODEL_STEP_DEP * depth_map[x][y]
-            z_coord = origin[2] + MODEL_STEP_VER * y
+            x_coord = origin[0] + MODEL_STEP_HORIZONTAL * x 
+            y_coord = origin[1] + MODEL_STEP_DEPTH * depth_map[x][y]
+            z_coord = origin[2] + MODEL_STEP_VERTICAL * y
             vertices.append((x_coord, y_coord, z_coord))
     print("Generated Vertices")
     return vertices
