@@ -34,9 +34,9 @@ def generate_depthmap(image: np.array) -> np.array:
     # find lowest and highest pixel values
     pixel_lowest  = 0
     pixel_highest = 0
-    for x in range(IMAGE_SIZE[0]):
-        for y in range(IMAGE_SIZE[1]):
-            value = image[x][y]
+    for r in range(IMAGE_SIZE[0]):
+        for c in range(IMAGE_SIZE[1]):
+            value = image[r][c]
             if value < pixel_lowest:
                 pixel_lowest = value
             if value > pixel_highest:
@@ -44,13 +44,13 @@ def generate_depthmap(image: np.array) -> np.array:
     pixel_max_height = pixel_highest - pixel_lowest
     # pixel transformation
     result = np.zeros(IMAGE_SIZE)
-    for x in range(IMAGE_SIZE[0]):
-        for y in range(IMAGE_SIZE[1]):
-            value = image[x][y]
+    for r in range(IMAGE_SIZE[0]):
+        for c in range(IMAGE_SIZE[1]):
+            value = image[r][c]
             value = (value - pixel_lowest) / pixel_max_height # normalize pixel that base on lowest and highest pixel values
             value **= EXPO_HEIGHT # exponential transformation (contrast adjustment, brightness enhancement, noise reduction)
-            result[x][y] = value
-    print(f"Generated Depthmap (low = {pixel_lowest:.3f}, high = {pixel_highest:.3f})")
+            result[r][c] = value
+    print(f"Generated Depthmap")
     return result
 
 def generate_vertices(depth_map: np.array) -> list:
@@ -59,12 +59,12 @@ def generate_vertices(depth_map: np.array) -> list:
     '''
     vertices = []
     origin = (0.0, 0.0, 0.0)
-    for x in range(IMAGE_SIZE[0]):
-        for y in range(IMAGE_SIZE[1]):
-            x_coord = origin[0] + MODEL_STEP_HORIZONTAL * x 
-            y_coord = origin[1] + MODEL_STEP_DEPTH * depth_map[x][y]
-            z_coord = origin[2] + MODEL_STEP_VERTICAL * y
-            vertices.append((x_coord, y_coord, z_coord))
+    for r in range(IMAGE_SIZE[0]):
+        for c in range(IMAGE_SIZE[1]):
+            x = origin[0] + MODEL_STEP_HORIZONTAL * r 
+            y = origin[1] + MODEL_STEP_DEPTH * depth_map[r][c]
+            z = origin[2] + MODEL_STEP_VERTICAL * c
+            vertices.append((x, y, z))
     print("Generated Vertices")
     return vertices
     
@@ -74,9 +74,9 @@ def generate_edges_and_triangles() -> tuple:
     '''
     edges = []
     triangles = []
-    for x in range(IMAGE_SIZE[0] - 1):
-        for y in range(IMAGE_SIZE[1] - 1):
-            v = x * IMAGE_SIZE[0] + y
+    for r in range(IMAGE_SIZE[0] - 1):
+        for c in range(IMAGE_SIZE[1] - 1):
+            v = r * IMAGE_SIZE[0] + c
             v0 = v
             v1 = v + 1
             v2 = v + IMAGE_SIZE[0] + 1
@@ -94,10 +94,10 @@ def generate_edges_and_triangles() -> tuple:
 def export_depth_map(depth_map, image_path):
     image = Image.new("RGB", IMAGE_SIZE, 0)
     draw  = ImageDraw.ImageDraw(image)
-    for x in range(IMAGE_SIZE[0]):
-        for y in range(IMAGE_SIZE[1]):
-            color = int(depth_map[x][y] * 255.0)
-            draw.point((x, y), (color, color, color))
+    for r in range(IMAGE_SIZE[0]):
+        for c in range(IMAGE_SIZE[1]):
+            color = int(depth_map[r][c] * 255.0)
+            draw.point((r, c), (color, color, color))
     image.save(image_path) 
     print(f"Saved '{image_path}'")
     return
