@@ -1,12 +1,11 @@
 # 3D Model Detailing
 
-## Snippets
+This project aims to reconstruct a 3D model from 2D images.
+But the results were not good enough. 😢
 
-Convert an image to gray image
+## Demo
 
-```python
-python -c "import PyVutils as vu; vu.save_image('', vu.to_gray_image(vu.load_image('')))" 
-```
+![image](https://github.com/user-attachments/assets/4528b33a-d47f-400f-9a10-1f8ebd7df8f2)
 
 ## Links
 
